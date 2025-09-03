@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TKE's Love Bingo Countdown</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FFF1F2; --primary-pink: #F472B6; --light-pink: #FCE7F3;
+            --dark-pink: #EC4899; --text-dark: #374151; --text-light: #6B7280;
+        }
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow-x: hidden; }
+        body {
+            font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+            font-weight: 300; /* Use Roboto Light as base */
+            background-color: var(--bg-color); display: flex; align-items: center;
+            justify-content: center; padding: 1rem; box-sizing: border-box;
+        }
+        .font-title { font-family: 'Dancing Script', cursive; }
+        .container {
+            width: 100%; max-width: 400px; background-color: white; border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 1.5rem; box-sizing: border-box;
+        }
+        header { text-align: center; margin-bottom: 1.5rem; }
+        header h1 { font-size: 2.5rem; color: var(--dark-pink); margin: 0; }
+        header p { margin: 0.5rem 0 0; color: var(--text-light); font-size: 1rem; font-weight: 400;}
+        .bingo-card { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+        .bingo-square { aspect-ratio: 1 / 1; perspective: 1000px; cursor: pointer; }
+        .bingo-square-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .bingo-square.completed .bingo-square-inner { transform: rotateY(180deg); }
+        .bingo-face {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden;
+            backface-visibility: hidden; display: flex; justify-content: center; align-items: center;
+            text-align: center; border-radius: 0.75rem; box-sizing: border-box; padding: 0.25rem;
+        }
+        .bingo-front { 
+            background-color: var(--light-pink); 
+            color: var(--text-dark); 
+            font-weight: 400; /* Regular weight for readability */
+            font-size: 10px;
+            line-height: 1.2; 
+        }
+        .free-space { background-color: #FBCFE8; font-size: 9px; }
+        .bingo-back { background-color: var(--primary-pink); color: white; transform: rotateY(180deg); font-size: 2.5rem; }
+        footer { text-align: center; margin-top: 1.5rem; font-style: italic; color: var(--text-light); font-size: 0.875rem; }
+        .modal-overlay {
+            position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center;
+            justify-content: center; padding: 1rem; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s; z-index: 100;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: white; padding: 2rem; border-radius: 1.5rem; text-align: center;
+            width: 100%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: scale(0.95); transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-content .emoji { font-size: 3rem; margin-bottom: 1rem; }
+        .modal-content h2 { font-size: 2rem; color: var(--text-dark); margin: 0; }
+        .modal-content p { color: var(--text-light); margin: 0.5rem 0 1.5rem; }
+        .modal-content button {
+            background-color: var(--dark-pink); color: white; font-weight: 700; padding: 0.75rem 1.5rem;
+            border-radius: 9999px; border: none; cursor: pointer; width: 100%; transition: background-color 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="font-title">Love Bingo</h1>
+            <p>A 10-day countdown until I see you, TKE!</p>
+        </header>
+        <main>
+            <div id="bingo-card" class="bingo-card"></div>
+        </main>
+        <footer>
+            <p>Click a square when you've done it!</p>
+        </footer>
+    </div>
+    <div id="completion-modal" class="modal-overlay">
+      <div class="modal-content">
+          <div class="emoji">🎉</div>
+          <h2 class="font-title">Bingo!</h2>
+          <p>You've completed a line! The countdown is getting shorter. Can't wait to see you!</p>
+          <button id="close-modal">Close</button>
+      </div>
+    </div>
+
+    <script>
+        const bingoItems = [
+            "Made sounds with lips", "Left hand moves while thinking", "Ate dim sum with prawn", "Retook a selfie",
+            "Ate a non-ribeye/sirloin steak", "Said 'is this blood?'", "Ate salmon", "Bought something for TKE",
+            "Felt sian & wanted to see TKE", // Free Space
+            "Said 'YES WE CAN'", "Thought about buying something then stopped", "Took a pic of the clouds",
+            "Said 'achi pa riah'", "Took a pic of the moon", "Said 'What is NORMAL?'", "Took a pic of the sunset"
+        ];
+
+        const bingoCard = document.getElementById('bingo-card');
+        const modal = document.getElementById('completion-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        
+        let completedStates;
+        try {
+            completedStates = JSON.parse(localStorage.getItem('loveBingoState')) || Array(16).fill(false);
+        } catch (e) {
+            console.log("Could not access localStorage. Using a temporary state.");
+            completedStates = Array(16).fill(false);
+        }
+
+        function createCard() {
+            bingoCard.innerHTML = '';
+            bingoItems.forEach((item, index) => {
+                const square = document.createElement('div');
+                square.classList.add('bingo-square');
+                if (completedStates[index]) { square.classList.add('completed'); }
+
+                const inner = document.createElement('div');
+                inner.classList.add('bingo-square-inner');
+                
+                const front = document.createElement('div');
+                front.classList.add('bingo-face', 'bingo-front');
+                
+                const back = document.createElement('div');
+                back.classList.add('bingo-face', 'bingo-back');
+                back.innerHTML = '❤️';
+                
+                if (item === "Felt sian & wanted to see TKE") {
+                     front.innerHTML = `❤️<br/>Felt sian & wanted to see TKE<br/>(FREE)`;
+                     front.classList.add('free-space');
+                } else {
+                    front.textContent = item;
+                }
+                
+                inner.appendChild(front);
+                inner.appendChild(back);
+                square.appendChild(inner);
+                
+                square.addEventListener('click', () => {
+                    square.classList.toggle('completed');
+                    completedStates[index] = !completedStates[index];
+                    try {
+                        localStorage.setItem('loveBingoState', JSON.stringify(completedStates));
+                    } catch (e) {
+                        console.log("Could not save to localStorage.");
+                    }
+                    checkBingo();
+                });
+                bingoCard.appendChild(square);
+            });
+        }
+        
+        function checkBingo() {
+            const lines = [
+                [0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15], // rows
+                [0,4,8,12], [1,5,9,13], [2,6,10,14], [3,7,11,15], // cols
+                [0,5,10,15], [3,6,9,12] // diags
+            ];
+            if (lines.some(line => line.every(index => completedStates[index]))) {
+                showModal();
+            }
+        }
+        
+        function showModal() { if (modal) modal.classList.add('visible'); }
+        function hideModal() { if (modal) modal.classList.remove('visible'); }
+
+        closeModalBtn.addEventListener('click', hideModal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+
+        createCard();
+    </script>
+</body>
+</html>
+
