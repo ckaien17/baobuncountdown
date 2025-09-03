@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TKE's Love Bingo Countdown</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FAF5FF; 
+            --primary-purple: #a855f7;
+            --light-purple: #f2b1ff;
+            --dark-purple: #9333ea; 
+            --text-dark: #374151; 
+            --text-light: #6B7280;
+            --gold: #FBBF24;
+        }
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow-x: hidden; }
+        body {
+            font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+            font-weight: 300;
+            background-color: var(--bg-color); display: flex; align-items: flex-start;
+            justify-content: center; padding: 2rem 1rem; box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .font-title { font-family: 'Dancing Script', cursive; }
+        .container {
+            width: 100%; max-width: 420px; background-color: white; border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 1.5rem; box-sizing: border-box;
+        }
+        header { text-align: center; margin-bottom: 1.5rem; }
+        header h1 { font-size: 2.5rem; color: var(--dark-purple); margin: 0; }
+        header p { margin: 0.5rem 0 0; color: var(--text-light); font-size: 1rem; font-weight: 400;}
+
+        /* Rules Section */
+        .rules-section {
+            background-color: var(--light-purple);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .rules-section h2 {
+            font-size: 1.5rem;
+            color: var(--dark-purple);
+            margin: 0 0 0.75rem 0;
+        }
+        .rules-content {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            color: var(--text-dark);
+            text-align: left;
+            overflow: hidden;
+            max-height: 200px; /* Adjust as needed */
+            transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            opacity: 1;
+        }
+        .rules-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+        }
+        .rules-content li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        .rules-content li::before {
+            content: '✨';
+            position: absolute;
+            left: 0;
+            top: 1px;
+        }
+        #toggle-rules-btn {
+            background: none;
+            border: none;
+            color: var(--dark-purple);
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            padding: 0.25rem;
+        }
+        
+        /* Bingo Card */
+        .bingo-card { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+        .bingo-square { aspect-ratio: 1 / 1; perspective: 1000px; cursor: pointer; }
+        .bingo-square-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .bingo-square.completed .bingo-square-inner { transform: rotateY(180deg); }
+        .bingo-face {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden;
+            backface-visibility: hidden; display: flex; justify-content: center; align-items: center;
+            text-align: center; border-radius: 0.75rem; box-sizing: border-box; padding: 0.25rem;
+        }
+        .bingo-front { 
+            background-color: var(--light-purple); 
+            color: var(--text-dark); 
+            font-weight: 400;
+            font-size: clamp(8px, 2.5vw, 11px);
+            line-height: 1.2; 
+        }
+        .free-space { background-color: #e9a3ff; }
+        .bingo-back { background-color: var(--primary-purple); color: white; transform: rotateY(180deg); font-size: 2.5rem; }
+
+        footer { text-align: center; margin-top: 1.5rem; }
+        footer p { font-style: italic; color: var(--text-light); font-size: 0.875rem; }
+        #flips-left { font-weight: 500; color: var(--dark-purple); }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center;
+            justify-content: center; padding: 1rem; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s; z-index: 100;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: white; padding: 2rem; border-radius: 1.5rem; text-align: center;
+            width: 100%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: scale(0.95); transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-content .emoji { font-size: 3rem; margin-bottom: 1rem; }
+        .modal-content h2 { font-size: 2rem; color: var(--text-dark); margin: 0; }
+        .modal-content p { color: var(--text-light); margin: 0.5rem 0 1.5rem; }
+        .modal-content button {
+            background-color: var(--dark-purple); color: white; font-weight: 700; padding: 0.75rem 1.5rem;
+            border-radius: 9999px; border: none; cursor: pointer; width: 100%; transition: background-color 0.2s;
+        }
+        .modal-content button:hover { background-color: var(--primary-purple); }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="font-title">Love Bingo</h1>
+            <p>A 10-day countdown until I see you, TKE!</p>
+        </header>
+
+        <section class="rules-section">
+            <h2 class="font-title">Rules & Rewards</h2>
+            <ul id="rules-content" class="rules-content">
+                <li>You can flip a maximum of <strong>3 tiles</strong> each day.</li>
+                <li>Every line you complete unlocks a reward!</li>
+                <li>You can suggest <strong>5 tiles</strong> for me to do for a special bonus.</li>
+            </ul>
+            <button id="toggle-rules-btn">Show More</button>
+        </section>
+
+        <main>
+            <div id="bingo-card" class="bingo-card"></div>
+        </main>
+        
+        <footer>
+            <p>You have <span id="flips-left">3</span> flips left for today.</p>
+        </footer>
+    </div>
+
+    <!-- Completion Modal -->
+    <div id="completion-modal" class="modal-overlay">
+      <div class="modal-content">
+          <div class="emoji">🎉</div>
+          <h2 class="font-title">Bingo!</h2>
+          <p>You've completed a line! A new reward is unlocked. The countdown is getting shorter!</p>
+          <button class="close-modal-btn">Awesome!</button>
+      </div>
+    </div>
+
+    <!-- Limit Reached Modal -->
+    <div id="limit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="emoji">✋</div>
+            <h2 class="font-title">Daily Limit</h2>
+            <p>You've used all your 3 flips for today. Come back tomorrow for more!</p>
+            <button class="close-modal-btn">Got It</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bingoItems = [
+                "Made sounds with lips", "Left hand moves while thinking", "Ate dim sum with prawn", "Retook a selfie",
+                "Ate a non-ribeye/sirloin steak", "Said 'is this blood?'", "Ate salmon", "Bought something for TKE",
+                "Felt sian & wanted to see TKE", // This is the Free Space
+                "Said 'YES WE CAN'", "Thought about buying something then stopped", "Took a pic of the clouds",
+                "Said 'achi pa riah'", "Took a pic of the moon", "Said 'What is NORMAL?'", "Took a pic of the sunset"
+            ];
+            const BINGO_SIZE = 4;
+            const MAX_FLIPS = 3;
+
+            const bingoCard = document.getElementById('bingo-card');
+            const completionModal = document.getElementById('completion-modal');
+            const limitModal = document.getElementById('limit-modal');
+            const closeModalBtns = document.querySelectorAll('.close-modal-btn');
+            const flipsLeftEl = document.getElementById('flips-left');
+            const toggleRulesBtn = document.getElementById('toggle-rules-btn');
+            const rulesContent = document.getElementById('rules-content');
+
+            let completedStates = [];
+            let tracker = { lastFlipDate: '', dailyFlipCount: 0 };
+
+            // --- State Management ---
+            function loadState() {
+                try {
+                    const savedState = JSON.parse(localStorage.getItem('loveBingoState')) || Array(bingoItems.length).fill(false);
+                    completedStates = savedState;
+
+                    const savedTracker = JSON.parse(localStorage.getItem('loveBingoTracker')) || { lastFlipDate: '', dailyFlipCount: 0 };
+                    tracker = savedTracker;
+                } catch (e) {
+                    console.warn("Could not access localStorage. Progress will not be saved.");
+                    completedStates = Array(bingoItems.length).fill(false);
+                }
+            }
+
+            function saveState() {
+                try {
+                    localStorage.setItem('loveBingoState', JSON.stringify(completedStates));
+                    localStorage.setItem('loveBingoTracker', JSON.stringify(tracker));
+                } catch (e) {
+                    console.warn("Could not save to localStorage.");
+                }
+            }
+            
+            // --- Daily Flip Logic ---
+            function checkDateAndResetFlips() {
+                const today = new Date().toDateString();
+                if (tracker.lastFlipDate !== today) {
+                    tracker.lastFlipDate = today;
+                    tracker.dailyFlipCount = 0;
+                    saveState();
+                }
+                updateFlipsUI();
+            }
+            
+            function updateFlipsUI() {
+                const flipsRemaining = MAX_FLIPS - tracker.dailyFlipCount;
+                flipsLeftEl.textContent = flipsRemaining;
+            }
+
+            // --- UI Creation ---
+            function createCard() {
+                bingoCard.innerHTML = '';
+                bingoItems.forEach((item, index) => {
+                    const square = document.createElement('div');
+                    square.classList.add('bingo-square');
+                    if (completedStates[index]) {
+                        square.classList.add('completed');
+                    }
+
+                    const inner = document.createElement('div');
+                    inner.classList.add('bingo-square-inner');
+                    
+                    const front = document.createElement('div');
+                    front.classList.add('bingo-face', 'bingo-front');
+                    
+                    const back = document.createElement('div');
+                    back.classList.add('bingo-face', 'bingo-back');
+                    back.innerHTML = '❤️';
+                    
+                    if (item === "Felt sian & wanted to see TKE") {
+                        front.innerHTML = `❤️<br/>${item}<br/>(FREE)`;
+                        front.classList.add('free-space');
+                    } else {
+                        front.textContent = item;
+                    }
+                    
+                    inner.append(front, back);
+                    square.appendChild(inner);
+                    
+                    square.addEventListener('click', () => handleSquareClick(square, index));
+                    bingoCard.appendChild(square);
+                });
+            }
+
+            function handleSquareClick(square, index) {
+                const isAlreadyCompleted = completedStates[index];
+                
+                // If flipping to 'completed'
+                if (!isAlreadyCompleted) {
+                    if (tracker.dailyFlipCount >= MAX_FLIPS) {
+                        showModal(limitModal);
+                        return; // Stop execution
+                    }
+                    tracker.dailyFlipCount++;
+                } else {
+                    // Optional: If you want un-flipping to give a flip back
+                    // if (tracker.dailyFlipCount > 0) {
+                    //    tracker.dailyFlipCount--;
+                    // }
+                }
+
+                completedStates[index] = !isAlreadyCompleted;
+                square.classList.toggle('completed');
+                
+                updateFlipsUI();
+                saveState();
+                checkBingo();
+            }
+
+            // --- Bingo Logic ---
+            function checkBingo() {
+                const lines = [];
+                // Rows & Cols
+                for (let i = 0; i < BINGO_SIZE; i++) {
+                    const row = [];
+                    const col = [];
+                    for (let j = 0; j < BINGO_SIZE; j++) {
+                        row.push(i * BINGO_SIZE + j);
+                        col.push(j * BINGO_SIZE + i);
+                    }
+                    lines.push(row, col);
+                }
+                // Diagonals
+                const diag1 = [], diag2 = [];
+                for (let i = 0; i < BINGO_SIZE; i++) {
+                    diag1.push(i * BINGO_SIZE + i);
+                    diag2.push(i * BINGO_SIZE + (BINGO_SIZE - 1 - i));
+                }
+                lines.push(diag1, diag2);
+
+                if (lines.some(line => line.every(index => completedStates[index]))) {
+                    showModal(completionModal);
+                }
+            }
+            
+            // --- Modals and Rules Toggle ---
+            function showModal(modal) {
+                if (modal) modal.classList.add('visible');
+            }
+            function hideAllModals() {
+                document.querySelectorAll('.modal-overlay').forEach(modal => modal.classList.remove('visible'));
+            }
+            
+            closeModalBtns.forEach(btn => btn.addEventListener('click', hideAllModals));
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => { if (e.target === modal) hideAllModals(); });
+            });
+
+            function toggleRules() {
+                const isCollapsed = rulesContent.classList.toggle('collapsed');
+                toggleRulesBtn.textContent = isCollapsed ? 'Show More' : 'Show Less';
+            }
+            toggleRulesBtn.addEventListener('click', toggleRules);
+
+            // --- Initial Setup ---
+            function initializeApp() {
+                loadState();
+                checkDateAndResetFlips();
+                createCard();
+                // Start with rules collapsed
+                rulesContent.classList.add('collapsed');
+                toggleRulesBtn.textContent = 'Show More';
+            }
+            
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
+
+
+
