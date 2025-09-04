@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TKE's Love Bingo 5x5</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FAF5FF; 
+            /* Updated Taro Theme */
+            --primary-taro: #C3A9D7;   /* Flipped back color */
+            --light-taro: #E0BBE4;     /* Unflipped front color */
+            --dark-taro: #957DAD;     
+            --text-dark: #374151; 
+            --text-light: #6B7280;
+            /* Gold Theme */
+            --gold: #FBBF24;          /* Flipped back color */
+            --light-gold: #FEF3C7;    /* Unflipped front color */
+            --dark-gold-text: #92400E;
+        }
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow-x: hidden; }
+        body {
+            font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+            font-weight: 300;
+            background-color: var(--bg-color); 
+            display: flex; 
+            align-items: flex-start;
+            justify-content: center; 
+            padding: 2rem 1rem; 
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .font-title { font-family: 'Dancing Script', cursive; }
+        .container {
+            width: 100%; 
+            max-width: 420px; 
+            background-color: white; 
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            padding: 1.5rem; 
+            box-sizing: border-box;
+        }
+        header { text-align: center; margin-bottom: 1.5rem; }
+        header h1 { font-size: 2.5rem; color: var(--dark-taro); margin: 0; }
+        header p { margin: 0.5rem 0 0; color: var(--text-light); font-size: 1rem; font-weight: 400;}
+
+        /* Rules Section */
+        .rules-section {
+            background-color: #F3E8F6;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .rules-section h2 {
+            font-size: 1.5rem;
+            color: var(--dark-taro);
+            margin: 0 0 0.75rem 0;
+            text-align: center;
+        }
+        .rules-content {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            color: var(--text-dark);
+            text-align: left;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+        .rules-content.expanded {
+            max-height: 400px;
+            opacity: 1;
+        }
+        .rules-content li {
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+            position: relative;
+            padding-left: 1.75rem;
+        }
+        .rules-content li::before {
+            font-size: 1.1rem;
+            position: absolute;
+            left: 0;
+            top: 1px;
+        }
+        .rules-content li.normal-rule::before { content: '🩷'; }
+        .rules-content li.special-rule::before { content: '🌟'; }
+        .rules-content li.reward-rule::before { content: '🏆'; }
+        
+        #toggle-rules-btn {
+            background: none;
+            border: none;
+            color: var(--dark-taro);
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            padding: 0.25rem;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Bingo Card */
+        .bingo-card { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
+        .bingo-square { aspect-ratio: 1 / 1; perspective: 1000px; cursor: pointer; }
+        .bingo-square-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .bingo-square.completed .bingo-square-inner { transform: rotateY(180deg); }
+        .bingo-face {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden;
+            backface-visibility: hidden; display: flex; justify-content: center; align-items: center;
+            text-align: center; border-radius: 0.75rem; box-sizing: border-box; padding: 0.25rem;
+        }
+        .bingo-front { 
+            background-color: var(--light-taro); 
+            color: var(--text-dark); 
+            font-weight: 400;
+            font-size: clamp(8px, 2.4vw, 10px);
+            line-height: 1.25; 
+        }
+        .bingo-back { background-color: var(--primary-taro); color: white; transform: rotateY(180deg); font-size: 2.5rem; }
+        
+        /* Special Tile Styles */
+        .bingo-front.special-tile {
+            background-color: var(--light-gold);
+            color: var(--dark-gold-text);
+            font-weight: 500;
+        }
+        .bingo-back.special-tile {
+            background-color: var(--gold);
+        }
+
+        footer { text-align: center; margin-top: 1.5rem; }
+        footer p { color: var(--text-light); font-size: 0.875rem; margin: 0.4rem 0; }
+        footer span { font-weight: 500; color: var(--dark-taro); }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center;
+            justify-content: center; padding: 1rem; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s; z-index: 100;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: white; padding: 2rem; border-radius: 1.5rem; text-align: center;
+            width: 100%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: scale(0.95); transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-content .emoji { font-size: 3rem; margin-bottom: 1rem; }
+        .modal-content h2 { font-size: 2rem; color: var(--text-dark); margin: 0; }
+        .modal-content p { color: var(--text-light); margin: 0.5rem 0 1.5rem; }
+        .modal-content button {
+            background-color: var(--dark-taro); color: white; font-weight: 700; padding: 0.75rem 1.5rem;
+            border-radius: 9999px; border: none; cursor: pointer; width: 100%; transition: background-color 0.2s;
+        }
+        .modal-content button:hover { background-color: #81649B; }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="font-title">Love Bingo</h1>
+            <p>A countdown until I see you, MBT!</p>
+        </header>
+
+        <section class="rules-section">
+            <h2 class="font-title">Rules & Rewards</h2>
+            <ul id="rules-content" class="rules-content">
+                <li class="normal-rule"><strong>Normal Tiles (Taro):</strong> You can flip a maximum of <strong>3</strong> of these common tiles each day.</li>
+                <li class="special-rule"><strong>Special Tiles (Gold):</strong> These are the 5 tasks for me to execute! You can only flip <strong>1</strong> of these per day.</li>
+                <li class="reward-rule">Every line you complete (horizontal, vertical, or diagonal) unlocks a special reward!</li>
+            </ul>
+            <button id="toggle-rules-btn">Show Rules</button>
+        </section>
+
+        <main>
+            <div id="bingo-card" class="bingo-card"></div>
+        </main>
+        
+        <footer>
+            <p>Normal flips left: <span id="normal-flips-left">3</span></p>
+            <p>Special flips left: <span id="special-flips-left">1</span></p>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="completion-modal" class="modal-overlay">
+      <div class="modal-content">
+          <div class="emoji">🎉</div>
+          <h2 class="font-title">Bingo!</h2>
+          <p>You've completed a line! A new reward is unlocked. The countdown is getting shorter!</p>
+          <button class="close-modal-btn">Awesome!</button>
+      </div>
+    </div>
+    <div id="normal-limit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="emoji">✋</div>
+            <h2 class="font-title">Daily Limit</h2>
+            <p>You've used all your 3 normal flips for today. Come back tomorrow for more!</p>
+            <button class="close-modal-btn">Got It</button>
+        </div>
+    </div>
+     <div id="special-limit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="emoji">🌟</div>
+            <h2 class="font-title">Special Limit</h2>
+            <p>You've used your 1 special flip for today. Another chance tomorrow!</p>
+            <button class="close-modal-btn">Understood</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- TILE DATA ---
+            const normalTiles = [
+                "Made sound 'chu chu chu'", "Left hand moves while thinking", "Right hand moves while thinking",
+                "Ate dim sum with prawn", "Ate a non-ribeye / sirloin steak", "Said “is this blood”",
+                "Ate salmon", "Retook a selfie", "Bought something for TKE", "Thought of buying smt but stopped",
+                "Said “YES WE CAN”", "Said achi pa riah", "Said _____ and thought of TKE", "Said “What is NORMAL”",
+                "Felt sian and wanna come see TKE", "Listen to MBTKE playlist", "Took a pic of the moon",
+                "Took a pic of sunset", "Took a pic of the clouds", "Made sounds with lips"
+            ];
+            const specialTiles = [
+                "Buy Ninja Turtle HK McD toy", "Eat one YUMZ Beef burger", "Fold a $10 note into a heart shape",
+                "Get MBT a little gift (<$10)", "Say “I love you” for 10 times in audio"
+            ];
+            
+            // --- CONSTANTS ---
+            const BINGO_SIZE = 5;
+            const MAX_NORMAL_FLIPS = 3;
+            const MAX_SPECIAL_FLIPS = 1;
+
+            // --- DOM ELEMENTS ---
+            const bingoCard = document.getElementById('bingo-card');
+            const completionModal = document.getElementById('completion-modal');
+            const normalLimitModal = document.getElementById('normal-limit-modal');
+            const specialLimitModal = document.getElementById('special-limit-modal');
+            const closeModalBtns = document.querySelectorAll('.close-modal-btn');
+            const normalFlipsLeftEl = document.getElementById('normal-flips-left');
+            const specialFlipsLeftEl = document.getElementById('special-flips-left');
+            const toggleRulesBtn = document.getElementById('toggle-rules-btn');
+            const rulesContent = document.getElementById('rules-content');
+
+            // --- STATE VARIABLES ---
+            let boardLayout = [];
+            let completedStates = [];
+            let tracker = { lastFlipDate: '', normalFlips: 0, specialFlips: 0 };
+
+            // --- UTILITY FUNCTIONS ---
+            const shuffleArray = (array) => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            };
+
+            // --- STATE MANAGEMENT ---
+            function loadState() {
+                try {
+                    const savedBoard = JSON.parse(localStorage.getItem('loveBingoBoardLayout'));
+                    const savedState = JSON.parse(localStorage.getItem('loveBingoCompletedStates'));
+                    const savedTracker = JSON.parse(localStorage.getItem('loveBingoTracker'));
+
+                    if (savedBoard && savedBoard.length === BINGO_SIZE * BINGO_SIZE) {
+                        boardLayout = savedBoard;
+                    } else {
+                        generateNewBoard(); 
+                    }
+                    
+                    completedStates = savedState || Array(BINGO_SIZE * BINGO_SIZE).fill(false);
+                    tracker = savedTracker || { lastFlipDate: '', normalFlips: 0, specialFlips: 0 };
+
+                } catch (e) {
+                    console.warn("Could not access localStorage. Progress will not be saved.");
+                    generateNewBoard();
+                    completedStates = Array(BINGO_SIZE * BINGO_SIZE).fill(false);
+                }
+            }
+
+            function saveState() {
+                try {
+                    localStorage.setItem('loveBingoBoardLayout', JSON.stringify(boardLayout));
+                    localStorage.setItem('loveBingoCompletedStates', JSON.stringify(completedStates));
+                    localStorage.setItem('loveBingoTracker', JSON.stringify(tracker));
+                } catch (e) {
+                    console.warn("Could not save to localStorage.");
+                }
+            }
+            
+            // --- BOARD GENERATION ---
+            function generateNewBoard() {
+                let newBoard = Array(BINGO_SIZE * BINGO_SIZE).fill(null);
+                const shuffledSpecials = shuffleArray([...specialTiles]);
+                const shuffledNormals = shuffleArray([...normalTiles]);
+
+                // Place the 5 special tiles in a fixed diagonal line
+                for (let i = 0; i < BINGO_SIZE; i++) {
+                    const position = i * BINGO_SIZE + i; // Calculates positions 0, 6, 12, 18, 24
+                    const specialTileText = shuffledSpecials.pop();
+                    newBoard[position] = { text: specialTileText, type: 'special' };
+                }
+
+                // Fill the rest of the board with normal tiles
+                for (let i = 0; i < newBoard.length; i++) {
+                    if (newBoard[i] === null) {
+                        const normalTileText = shuffledNormals.pop();
+                        newBoard[i] = { text: normalTileText, type: 'normal' };
+                    }
+                }
+               
+                boardLayout = newBoard;
+                completedStates = Array(BINGO_SIZE * BINGO_SIZE).fill(false);
+                saveState();
+            }
+
+            // --- DAILY FLIP LOGIC ---
+            function checkDateAndResetFlips() {
+                const today = new Date().toDateString();
+                if (tracker.lastFlipDate !== today) {
+                    tracker.lastFlipDate = today;
+                    tracker.normalFlips = 0;
+                    tracker.specialFlips = 0;
+                    saveState();
+                }
+                updateFlipsUI();
+            }
+            
+            function updateFlipsUI() {
+                normalFlipsLeftEl.textContent = Math.max(0, MAX_NORMAL_FLIPS - tracker.normalFlips);
+                specialFlipsLeftEl.textContent = Math.max(0, MAX_SPECIAL_FLIPS - tracker.specialFlips);
+            }
+
+            // --- UI CREATION & INTERACTION ---
+            function createCard() {
+                bingoCard.innerHTML = '';
+                boardLayout.forEach((item, index) => {
+                    const square = document.createElement('div');
+                    square.classList.add('bingo-square');
+                    if (completedStates[index]) {
+                        square.classList.add('completed');
+                    }
+
+                    const inner = document.createElement('div');
+                    inner.classList.add('bingo-square-inner');
+                    
+                    const front = document.createElement('div');
+                    front.classList.add('bingo-face', 'bingo-front');
+                    
+                    const back = document.createElement('div');
+                    back.classList.add('bingo-face', 'bingo-back');
+                    
+                    front.textContent = item.text;
+
+                    if (item.type === 'special') {
+                        front.classList.add('special-tile');
+                        back.classList.add('special-tile');
+                        back.innerHTML = '🌟';
+                    } else {
+                        back.innerHTML = '🩷';
+                    }
+                    
+                    inner.append(front, back);
+                    square.appendChild(inner);
+                    square.addEventListener('click', () => handleSquareClick(square, index, item.type));
+                    bingoCard.appendChild(square);
+                });
+            }
+
+            function handleSquareClick(square, index, type) {
+                const isAlreadyCompleted = completedStates[index];
+
+                if (!isAlreadyCompleted) { // Flipping to 'completed'
+                    if (type === 'normal' && tracker.normalFlips >= MAX_NORMAL_FLIPS) {
+                        showModal(normalLimitModal);
+                        return;
+                    }
+                    if (type === 'special' && tracker.specialFlips >= MAX_SPECIAL_FLIPS) {
+                        showModal(specialLimitModal);
+                        return;
+                    }
+                    if (type === 'normal') tracker.normalFlips++;
+                    if (type === 'special') tracker.specialFlips++;
+
+                } else { // Un-flipping
+                    if (type === 'normal' && tracker.normalFlips > 0) tracker.normalFlips--;
+                    if (type === 'special' && tracker.specialFlips > 0) tracker.specialFlips--;
+                }
+
+                completedStates[index] = !isAlreadyCompleted;
+                square.classList.toggle('completed');
+                
+                updateFlipsUI();
+                saveState();
+                checkBingo();
+            }
+
+            // --- BINGO LOGIC ---
+            function checkBingo() {
+                let bingoFound = false;
+                // Check rows
+                for (let i = 0; i < BINGO_SIZE; i++) {
+                    let rowComplete = true;
+                    for (let j = 0; j < BINGO_SIZE; j++) {
+                        if (!completedStates[i * BINGO_SIZE + j]) rowComplete = false;
+                    }
+                    if (rowComplete) bingoFound = true;
+                }
+                // Check columns
+                for (let i = 0; i < BINGO_SIZE; i++) {
+                    let colComplete = true;
+                    for (let j = 0; j < BINGO_SIZE; j++) {
+                        if (!completedStates[i + j * BINGO_SIZE]) colComplete = false;
+                    }
+                    if (colComplete) bingoFound = true;
+                }
+                // Check diagonals
+                let diag1Complete = true;
+                let diag2Complete = true;
+                for (let i = 0; i < BINGO_SIZE; i++) {
+                    if (!completedStates[i * BINGO_SIZE + i]) diag1Complete = false;
+                    if (!completedStates[i * BINGO_SIZE + (BINGO_SIZE - 1 - i)]) diag2Complete = false;
+                }
+                if (diag1Complete || diag2Complete) bingoFound = true;
+
+                if (bingoFound) {
+                    // Slight delay to allow flip animation to finish
+                    setTimeout(() => showModal(completionModal), 300);
+                }
+            }
+            
+            // --- MODALS AND RULES TOGGLE ---
+            function showModal(modal) {
+                if (modal) modal.classList.add('visible');
+            }
+            function hideAllModals() {
+                document.querySelectorAll('.modal-overlay').forEach(modal => modal.classList.remove('visible'));
+            }
+            
+            closeModalBtns.forEach(btn => btn.addEventListener('click', hideAllModals));
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => { if (e.target === modal) hideAllModals(); });
+            });
+
+            toggleRulesBtn.addEventListener('click', () => {
+                const isExpanded = rulesContent.classList.toggle('expanded');
+                toggleRulesBtn.textContent = isExpanded ? 'Hide Rules' : 'Show Rules';
+            });
+
+            // --- INITIAL SETUP ---
+            function initializeApp() {
+                loadState();
+                checkDateAndResetFlips();
+                createCard();
+            }
+            
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
